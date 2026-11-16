@@ -102,8 +102,8 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
 .chip.bad rect{fill:var(--gel-salmon)}
 .chip.fam rect{fill:var(--gel-yellow)}
 .chip.pick rect{stroke-width:3}
-.own dt,.own dd{opacity:.25;transition:opacity .4s}
-.own dt.on,.own dd.on{opacity:1}
+.own dt,.own dd{color:rgba(0,0,0,.25);transition:color .4s}
+.own dt.on,.own dd.on{color:var(--ink)}
 .own{font-size:14.5px}
 .rules{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;height:100%}
 .rules div{border-top:1px solid var(--ink);padding-top:8px;font-size:14px;line-height:1.35}
@@ -132,8 +132,8 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
 .browser .tb span{font:700 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--rule-soft);transition:background .3s}
 .browser .tb span.on{background:var(--gel-peach);border-color:var(--ink)}
 .browser .pg{padding:12px 16px;display:grid;gap:8px}
-.browser p{margin:0;font-size:15px;line-height:1.4;padding:3px 8px;opacity:.3;transition:opacity .4s,background .4s}
-.browser p.seen{opacity:1}
+.browser p{margin:0;font-size:15px;line-height:1.4;padding:3px 8px;color:rgba(0,0,0,.3);transition:color .4s,background .4s}
+.browser p.seen{color:var(--ink)}
 .browser p.hit{background:var(--gel-sage)}
 .browser p.bad{background:var(--gel-salmon)}
 .browser .legal{font:400 12.5px var(--sans);border-top:1px dashed var(--rule-muted);padding-top:8px;margin-top:4px}
@@ -157,8 +157,8 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
 .legend{display:flex;gap:16px;font:700 9px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-top:10px}
 .legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px;background:var(--c)}
 .toasts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;height:100%}
-.toast{border:1px dotted var(--rule-muted);padding:10px 12px;font-size:15px;line-height:1.35;opacity:.45;transition:opacity .4s,background .4s}
-.toast.on{opacity:1;background:var(--gel-periwinkle);border:0;mix-blend-mode:multiply}
+.toast{border:1px dotted var(--rule-muted);padding:10px 12px;font-size:15px;line-height:1.35;color:rgba(0,0,0,.45);transition:color .4s,background .4s}
+.toast.on{color:var(--ink);background:var(--gel-periwinkle);border-color:transparent}
 .toast small{display:block;font:700 9px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin-bottom:6px}
 .sheet{background:var(--ground-sage);border:1px solid var(--ink);height:100%;padding:10px 12px;font-size:13px}
 .sheet .fn{font:700 9px var(--sans);letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
@@ -173,16 +173,17 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
 .cols{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-left:1px solid var(--rule-soft)}
 .col{border-right:1px solid var(--rule-soft);padding:4px 6px;display:flex;flex-direction:column;gap:5px;min-height:70px}
 .col h4{margin:0;font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.deal{font-size:13px;line-height:1.25;padding:4px 6px;background:var(--gel-yellow);mix-blend-mode:multiply;animation:pop .4s}
+.deal{position:relative;font-size:13px;line-height:1.25;padding:4px 6px;background:var(--gel-yellow);animation:pop .4s}
 .deal.s{background:var(--gel-steel)}
 .deal em{display:block;font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
-@keyframes pop{from{transform:translateY(4px);opacity:0}to{transform:none;opacity:1}}
+/* No transform/opacity/blend modes inside foreignObject: Safari draws those layers at the wrong position and scale. */
+@keyframes pop{from{top:4px;color:transparent;background-color:transparent}to{top:0}}
 .teams{background:var(--paper);border:1px solid var(--ink);height:100%;padding:8px 10px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
-.msg{font-size:13px;line-height:1.3;background:var(--gel-periwinkle);mix-blend-mode:multiply;padding:4px 8px;animation:pop .4s}
+.msg{position:relative;flex:none;font-size:13px;line-height:1.3;background:var(--gel-periwinkle);padding:4px 8px;animation:pop .4s}
 .msg.alert{background:var(--gel-salmon);border-left:3px solid var(--red)}
 .res{display:grid;gap:20px;height:100%;align-content:start}
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.tile{padding:16px 18px;mix-blend-mode:multiply}
+.tile{padding:16px 18px}
 .tile:nth-child(1){background:var(--gel-yellow)} .tile:nth-child(2){background:var(--gel-sky)} .tile:nth-child(3){background:var(--gel-lime)}
 .tile:nth-child(4){background:var(--gel-peach)} .tile:nth-child(5){background:var(--gel-steel)} .tile:nth-child(6){background:var(--gel-sage)}
 .tile .v{font:900 44px/1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
