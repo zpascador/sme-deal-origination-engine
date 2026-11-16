@@ -46,6 +46,8 @@ h1{font:400 clamp(34px,5.4vw,64px)/.92 var(--hollow);text-transform:uppercase;ma
 .spg p{margin:0;font-size:15px;line-height:1.4}
 @media (max-width:760px){.spg{grid-template-columns:1fr}header{grid-template-columns:1fr}}
 
+/* Player = tabs + stage + caption/controls. Width is capped so the whole player fits the window height (≈210px for tabs, caption, controls and gaps). */
+.player{display:grid;gap:16px;width:100%;max-width:max(640px,calc((100svh - 210px) * 1200 / 660));margin:0 auto}
 nav.tabs{display:flex;flex-wrap:wrap;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
 nav.tabs button{flex:1 1 120px;position:relative;background:transparent;color:var(--ink);border:0;border-right:1px solid var(--rule-soft);padding:12px 14px;font:700 11px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;text-align:left;cursor:pointer}
 nav.tabs button:last-child{border-right:0}
@@ -206,6 +208,7 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
     </div>
   </header>
 
+  <section class="player" aria-label="Animated walkthrough">
   <nav class="tabs" id="tabs" aria-label="Workflow stages"></nav>
 
   <div class="stage">
@@ -225,6 +228,7 @@ footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-to
       <button id="next" aria-label="Next stage">▶</button>
     </div>
   </div>
+  </section>
 
   <footer>A generalised case study. Every company, place, company number, message and alert shown is illustrative, and figures are approximate percentages.</footer>
 </div>
