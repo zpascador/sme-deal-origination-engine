@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SME Deal Origination Engine</title>
+<style>
+/* modern RETRO (Retro Acrylic): warm paper, black ink, translucent gels multiplied where they cross, zero corners.
+   Layout: case header with one decorative gel stack → animated 1200×660 stage framed by registration crosses → narration + controls.
+   Tiers: Gold = yellow gel, Silver = steel gel. Current step = peach gel. Filters and alerts = the red rule. */
+@font-face{font-family:"Arial Black";src:local("Arial Black"),local("ArialMT-Black"),url("fonts/ariblk.ttf") format("truetype");font-weight:900;font-display:swap}
+@font-face{font-family:"Arialic Hollow";src:url("fonts/arialic-hollow.ttf") format("truetype");font-weight:400;font-display:swap}
+:root{
+  --paper:#fdfcfa; --ink:#000; --canvas:#fff; --rule-soft:#d8d8d8; --rule-muted:#9a9a9a; --red:#e91d2a;
+  --gel-yellow:rgba(252,194,15,.72); --gel-peach:rgba(230,145,93,.78); --gel-sky:rgba(154,182,200,.8);
+  --gel-steel:rgba(165,184,192,.82); --gel-sage:rgba(179,189,149,.85); --gel-lime:rgba(192,212,167,.85);
+  --gel-salmon:rgba(215,122,122,.78); --gel-periwinkle:rgba(140,154,224,.75); --gel-white:rgba(255,255,255,.72); --gel-red:rgba(233,29,42,.92);
+  --ground-sky:#e6edf1; --ground-sage:#ecefe5; --ground-yellow:#fef3cf;
+  --text:#000; --muted:#555; --ok:#000; --flag:#e91d2a;
+  --hollow:"Arialic Hollow","Arial Black",Arial,sans-serif;
+  --display:"Arial Black","Arial Bold",Arial,Helvetica,sans-serif;
+  --sans:Helvetica,Arial,"Helvetica Neue",sans-serif;
+  --serif:"Times New Roman",Times,Georgia,serif;
+  --caps:.2em;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif)}
+body{padding:28px 20px 40px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:24px}
+header{display:grid;grid-template-columns:1fr auto;gap:16px 32px;align-items:start}
+header > *{grid-column:1}
+.hero{grid-column:2;grid-row:1 / span 3;position:relative;width:190px;height:150px}
+.hero i{position:absolute;width:96px;height:96px;mix-blend-mode:multiply}
+.hero i:nth-child(1){left:0;top:0;background:var(--gel-yellow)}
+.hero i:nth-child(2){left:78px;top:30px;background:var(--gel-sky)}
+.hero i:nth-child(3){left:30px;top:78px;background:var(--gel-steel)}
+@media (max-width:760px){.hero{display:none}}
+.eyebrow{font:700 10px/1.4 var(--sans);letter-spacing:var(--caps);text-transform:uppercase}
+h1{font:400 clamp(34px,5.4vw,64px)/.92 var(--hollow);text-transform:uppercase;margin:0;text-wrap:balance}
+.lede{margin:0;font-size:18px;line-height:1.4;max-width:68ch}
+.spg{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:4px}
+.spg div{padding:16px 18px 18px;mix-blend-mode:multiply}
+.spg div:nth-child(1){background:var(--gel-lime)} .spg div:nth-child(2){background:var(--gel-peach)} .spg div:nth-child(3){background:var(--gel-sky)}
+.spg h2{font:700 10px/1 var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin:0 0 10px}
+.spg p{margin:0;font-size:15px;line-height:1.4}
+@media (max-width:760px){.spg{grid-template-columns:1fr}header{grid-template-columns:1fr}}
+
+nav.tabs{display:flex;flex-wrap:wrap;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+nav.tabs button{flex:1 1 120px;position:relative;background:transparent;color:var(--ink);border:0;border-right:1px solid var(--rule-soft);padding:12px 14px;font:700 11px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;text-align:left;cursor:pointer}
+nav.tabs button:last-child{border-right:0}
+nav.tabs button b{font-weight:400;margin-right:8px}
+nav.tabs button[aria-current="step"]{background:var(--gel-peach)}
+nav.tabs .bar{position:absolute;left:0;bottom:-1px;height:3px;width:0;background:var(--ink)}
+nav.tabs button:hover{text-decoration:underline}
+nav.tabs button:focus-visible,.ctl button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.stage{background:var(--paper);border:1px solid var(--ink)}
+.stage svg{display:block;width:100%;height:auto}
+.narr{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.cap{min-height:96px}
+.cap .k{font:700 10px/1 var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin-bottom:10px;padding-left:10px;border-left:3px solid var(--red)}
+.cap p{margin:0;font-size:19px;line-height:1.4;max-width:75ch}
+.ctl{display:flex;gap:8px}
+.ctl button{background:var(--paper);color:var(--ink);border:1px solid var(--ink);border-radius:0;height:40px;min-width:40px;padding:0 14px;font:700 11px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;cursor:pointer}
+.ctl button#play{background:var(--ink);color:var(--paper)}
+.ctl button:active{transform:translateY(1px)}
+.ctl button:disabled{color:var(--rule-muted);border-style:dotted}
+@media (max-width:760px){.narr{grid-template-columns:1fr}.cap p{font-size:16px}}
+footer{font-size:13px;line-height:1.4;border-top:1px solid var(--ink);padding-top:10px}
+
+/* --- SVG scene styles --- */
+.lbl{font:700 14px var(--sans);fill:var(--ink)}
+.lbl-c{font:700 10px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;fill:var(--ink);text-anchor:middle}
+.sub{font:400 13.5px var(--serif);fill:var(--muted)}
+.tag{font:700 10px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;fill:var(--ink)}
+.cross{stroke:var(--ink);stroke-width:1}
+.funnel{fill:var(--ground-sky);stroke:var(--ink);stroke-width:1}
+.gate{stroke:var(--rule-muted);stroke-width:1.5;stroke-dasharray:5 5;transition:stroke .4s}
+.gate.on{stroke:var(--red);stroke-dasharray:none;stroke-width:2}
+.glabel{opacity:.4;transition:opacity .4s}
+.glabel.on{opacity:1}
+.gnum{fill:var(--paper);stroke:var(--ink);transition:fill .4s}
+.glabel.on .gnum{fill:var(--gel-yellow)}
+.cutp{font:900 14px var(--display);fill:var(--red);text-anchor:end}
+.gnumt{font:900 12px var(--display);fill:var(--ink);text-anchor:middle}
+.node rect{fill:var(--gel-white);stroke:var(--ink);stroke-width:1;transition:fill .35s}
+.node.human rect{stroke-dasharray:4 3}
+.node.on rect{fill:var(--gel-peach);mix-blend-mode:multiply}
+.node.gold.on rect{fill:var(--gel-yellow)}
+.node.silver.on rect{fill:var(--gel-steel)}
+.node.alert.on rect{fill:var(--gel-salmon)}
+.ntitle{font:700 14px var(--sans);fill:var(--ink)}
+.nsub{font:400 13px var(--serif);fill:var(--muted)}
+.wire{fill:none;stroke:var(--rule-muted);stroke-width:1.5}
+.wire.live{stroke:var(--ink);stroke-dasharray:6 5;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-22}}
+.chip rect{fill:var(--canvas);stroke:var(--ink);stroke-width:1;transition:fill .3s}
+.chip.ok rect{fill:var(--gel-sage)}
+.chip.bad rect{fill:var(--gel-salmon)}
+.chip.fam rect{fill:var(--gel-yellow)}
+.chip.pick rect{stroke-width:3}
+.own dt,.own dd{opacity:.25;transition:opacity .4s}
+.own dt.on,.own dd.on{opacity:1}
+.own{font-size:14.5px}
+.rules{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;height:100%}
+.rules div{border-top:1px solid var(--ink);padding-top:8px;font-size:14px;line-height:1.35}
+.rules b{display:block;font:700 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+.chip text{font:400 14px var(--serif);fill:var(--ink)}
+.q rect{fill:var(--canvas);stroke:var(--rule-muted);transition:fill .2s}
+.q.on rect{fill:var(--gel-sky)}
+.q text{font:700 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;fill:var(--ink)}
+.pill rect{fill:var(--canvas);stroke:var(--ink);transition:fill .3s}
+.pill.on rect{fill:var(--gel-sage)}
+.pill text{font:700 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;fill:var(--ink);text-anchor:middle}
+
+/* foreignObject panels */
+.fo{font-family:var(--serif);color:var(--ink);height:100%}
+.card{background:var(--gel-white);border:1px solid var(--ink);padding:14px 16px;height:100%}
+.card-h{display:flex;justify-content:space-between;align-items:center;font:700 10px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin-bottom:12px}
+.pillx{font:700 9px var(--sans);letter-spacing:.16em;background:var(--gel-yellow);padding:3px 7px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:15px}
+.kv dt{font:700 10px/1.9 var(--sans);letter-spacing:.16em;text-transform:uppercase} .kv dd{margin:0}
+.m{font-family:var(--sans);letter-spacing:.04em}
+.browser{background:var(--canvas);border:1px solid var(--ink);height:100%;overflow:hidden}
+.browser .bar{display:flex;gap:10px;align-items:center;background:var(--ground-sky);border-bottom:1px solid var(--ink);padding:8px 12px;font:400 13px var(--sans)}
+.browser .dots{letter-spacing:2px;color:var(--rule-muted)}
+.browser .url{background:var(--canvas);border:1px solid var(--rule-soft);padding:4px 10px;flex:1;min-height:24px}
+.browser .tb{display:flex;gap:6px;padding:10px 14px 0}
+.browser .tb span{font:700 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--rule-soft);transition:background .3s}
+.browser .tb span.on{background:var(--gel-peach);border-color:var(--ink)}
+.browser .pg{padding:12px 16px;display:grid;gap:8px}
+.browser p{margin:0;font-size:15px;line-height:1.4;padding:3px 8px;opacity:.3;transition:opacity .4s,background .4s}
+.browser p.seen{opacity:1}
+.browser p.hit{background:var(--gel-sage)}
+.browser p.bad{background:var(--gel-salmon)}
+.browser .legal{font:400 12.5px var(--sans);border-top:1px dashed var(--rule-muted);padding-top:8px;margin-top:4px}
+.badge{display:flex;gap:10px;align-items:center;height:100%;border:1px dashed var(--rule-muted);padding:0 16px;font-size:15px;transition:background .4s}
+.badge.on{border:1px solid var(--ink);background:var(--gel-sage)}
+.badge .ic{font:900 15px var(--display)}
+.gen{font-size:16px;line-height:1.45;min-height:120px}
+.gen .flagged{background:var(--gel-salmon);padding:0 2px}
+.gen s{text-decoration-color:var(--red);text-decoration-thickness:2px} .gen ins{text-decoration:none;background:var(--gel-sage);padding:0 3px}
+.facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.facts span{font:400 12.5px var(--serif);font-style:italic;border:1px solid var(--ink);padding:2px 8px}
+.verdict{font-size:15px;line-height:1.4}
+.verdict b{font:900 13px var(--display);letter-spacing:.02em}
+.verdict b.bad{color:var(--red)}
+.fan{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center;height:100%}
+.fan .n{font:900 34px/1 var(--display);letter-spacing:-.02em}
+.fan .d{font-size:14px;line-height:1.4;margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(70,1fr);gap:2px}
+.grid i{display:block;aspect-ratio:1;background:#ecebe6;transition:background .25s}
+.grid i.g{background:var(--gel-sage)} .grid i.r{background:var(--gel-red)} .grid i.n{background:var(--gel-steel)}
+.legend{display:flex;gap:16px;font:700 9px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.toasts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;height:100%}
+.toast{border:1px dotted var(--rule-muted);padding:10px 12px;font-size:15px;line-height:1.35;opacity:.45;transition:opacity .4s,background .4s}
+.toast.on{opacity:1;background:var(--gel-periwinkle);border:0;mix-blend-mode:multiply}
+.toast small{display:block;font:700 9px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin-bottom:6px}
+.sheet{background:var(--ground-sage);border:1px solid var(--ink);height:100%;padding:10px 12px;font-size:13px}
+.sheet .fn{font:700 9px var(--sans);letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
+.sheet table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.sheet td{border:1px solid var(--rule-muted);padding:4px 6px;background:var(--canvas)}
+.sheet td:first-child{font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;width:38%;background:transparent}
+.sheet td.v{transition:background .3s}
+.sheet td.v.flash{background:var(--gel-yellow)}
+.sheet .yes{font-weight:700;color:var(--red)}
+.board{background:var(--gel-white);border:1px solid var(--ink);height:100%;padding:8px 10px;display:grid;grid-template-rows:auto 1fr;gap:6px}
+.board .hd,.teams .hd{font:700 9px var(--sans);letter-spacing:var(--caps);text-transform:uppercase}
+.cols{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-left:1px solid var(--rule-soft)}
+.col{border-right:1px solid var(--rule-soft);padding:4px 6px;display:flex;flex-direction:column;gap:5px;min-height:70px}
+.col h4{margin:0;font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal{font-size:13px;line-height:1.25;padding:4px 6px;background:var(--gel-yellow);mix-blend-mode:multiply;animation:pop .4s}
+.deal.s{background:var(--gel-steel)}
+.deal em{display:block;font:700 9px var(--sans);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+@keyframes pop{from{transform:translateY(4px);opacity:0}to{transform:none;opacity:1}}
+.teams{background:var(--paper);border:1px solid var(--ink);height:100%;padding:8px 10px;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.msg{font-size:13px;line-height:1.3;background:var(--gel-periwinkle);mix-blend-mode:multiply;padding:4px 8px;animation:pop .4s}
+.msg.alert{background:var(--gel-salmon);border-left:3px solid var(--red)}
+.res{display:grid;gap:20px;height:100%;align-content:start}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.tile{padding:16px 18px;mix-blend-mode:multiply}
+.tile:nth-child(1){background:var(--gel-yellow)} .tile:nth-child(2){background:var(--gel-sky)} .tile:nth-child(3){background:var(--gel-lime)}
+.tile:nth-child(4){background:var(--gel-peach)} .tile:nth-child(5){background:var(--gel-steel)} .tile:nth-child(6){background:var(--gel-sage)}
+.tile .v{font:900 44px/1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .t{font-size:14.5px;margin-top:8px;line-height:1.35}
+.stack{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.stack span{font:700 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;padding:8px 12px;border-right:1px solid var(--rule-soft)}
+.did{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;font-size:15px;line-height:1.4;margin:0;padding-left:18px}
+.rh{font:700 10px var(--sans);letter-spacing:var(--caps);text-transform:uppercase;margin:0 0 10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Case study · deal sourcing automation · Built by Zephyr Pascador</div>
+    <h1>SME Deal Origination Engine</h1>
+    <div class="hero" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="lede">How I built a weekly off-market deal-sourcing pipeline for SME acquisitions: from every company in a national database to signed letters, email sequences and tracked CRM deals.</p>
+    <div class="spg">
+      <div><h2>Situation</h2><p>An acquisition team with a company-database licence and a small staff, looking for founder-owned SMEs whose owners are nearing succession.</p></div>
+      <div><h2>Problem</h2><p>Tens of thousands of candidates, unreliable industry codes, personal letters nobody can write by hand at scale, and targets that may already have been sold.</p></div>
+      <div><h2>Goal</h2><p>Contact every eligible owner exactly once, with a specific and true message, and track every outcome in the CRM without copying data between tools.</p></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="Workflow stages"></nav>
+
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 1200 660" role="img" aria-labelledby="capk">
+      <g id="crosses"><path class="cross" d="M10,20.5 h21 M20.5,10 v21 M1169,20.5 h21 M1179.5,10 v21 M10,639.5 h21 M20.5,629 v21 M1169,639.5 h21 M1179.5,629 v21"/></g>
+      <g id="scene"></g>
+      <g id="scratch" visibility="hidden"></g>
+    </svg>
+  </div>
+
+  <div class="narr">
+    <div class="cap" aria-live="polite"><div class="k" id="capk"></div><p id="capt"></p></div>
+    <div class="ctl">
+      <button id="prev" aria-label="Previous stage">◀</button>
+      <button id="play" aria-label="Pause">Pause</button>
+      <button id="replay" aria-label="Replay this stage">Replay</button>
+      <button id="next" aria-label="Next stage">▶</button>
+    </div>
+  </div>
+
+  <footer>A generalised case study. Every company, place, company number, message and alert shown is illustrative, and figures are approximate percentages.</footer>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('svg'), scene=document.getElementById('scene'), scratch=document.getElementById('scratch');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let INSTANT=false;
+const P={ch:0,t:0,dur:1,playing:!RM,last:null,beats:[],bi:0,tweens:[],sched:[]};
+
+/* ---------- helpers ---------- */
+function S(tag,a={},parent=scene,txt){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;parent.appendChild(e);return e}
+function T(x,y,txt,cls,parent,a={}){return S('text',Object.assign({x,y,class:cls},a),parent,txt)}
+function FO(x,y,w,h,html,parent=scene){const f=S('foreignObject',{x,y,width:w,height:h},parent);const d=document.createElement('div');d.className='fo';d.innerHTML=html;f.appendChild(d);return d}
+function $(id){return document.getElementById(id)}
+function anim(node,frames,opt={}){
+  if(INSTANT){const f=frames[frames.length-1];for(const k in f){if(k!=='offset'&&k!=='easing')node.style[k]=f[k]}return}
+  const a=node.animate(frames,Object.assign({duration:600,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'},opt));
+  a.onfinish=()=>{try{a.commitStyles();a.cancel()}catch(e){}};
+  if(!P.playing)a.pause();
+}
+function tween(dur,fn,delay=0){if(INSTANT){fn(1);return}P.tweens.push({s:P.t+delay,d:dur,fn})}
+function later(ms,fn){if(INSTANT){fn();return}P.sched.push({at:P.t+ms,fn})}
+function ease(p){return p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2}
+function setCls(e,c,on=true){e.classList.toggle(c,on)}
+function pathPts(d,n=28){const p=S('path',{d},scratch);const L=p.getTotalLength();const pts=[];for(let i=0;i<=n;i++){const q=p.getPointAtLength(L*i/n);pts.push([q.x,q.y])}p.remove();return pts}
+function travel(tok,d,dur=800,delay=0){const pts=pathPts(d);tok.style.transform=`translate(${pts[0][0]}px,${pts[0][1]}px)`;tok.style.opacity=1;anim(tok,pts.map(p=>({transform:`translate(${p[0]}px,${p[1]}px)`})),{duration:dur,delay,easing:'ease-in-out'})}
+function token(color){const g=S('g',{});S('circle',{r:12,fill:color,opacity:.35},g);S('circle',{r:7,fill:color,stroke:'#000','stroke-width':1},g);g.style.opacity=0;return g}
+function node(o){
+  const g=S('g',{class:'node '+(o.cls||'')});
+  S('rect',{x:o.x,y:o.y,width:o.w,height:o.h},g);
+  let y=o.y+22;
+  if(o.tag){T(o.x+14,y,o.tag,'tag',g);y+=19}
+  T(o.x+14,y,o.title,'ntitle',g);
+  if(o.sub)T(o.x+14,y+17,o.sub,'nsub',g);
+  return g;
+}
+function cap(k,t){$('capk').textContent=k;$('capt').textContent=t}
+
+/* ---------- scene 1: sourcing funnel ---------- */
+function s1(){
+  const B=[], cx=360,yT=80,yB=500,wT=560,wB=150;
+  const W=y=>wT+(wB-wT)*(y-yT)/(yB-yT);
+  S('path',{d:`M${cx-wT/2},${yT} L${cx+wT/2},${yT} L${cx+wB/2},${yB} L${cx-wB/2},${yB} Z`,class:'funnel'});
+  T(cx,58,'Company database · 100% of registered UK companies','lbl-c');
+  const cut=[80,40,15,50,30], rem=[20,12,10.2,5.1,3.6];
+  const gates=[
+    ['Revenue','Inside the target band · removes 80%','Revenue inside the target band removes about 80% of companies, most of them too small to support new ownership and acquisition debt. 20% of the universe is left.'],
+    ['EBITDA','Inside the target band · removes 40%','EBITDA inside the target band removes another 40% of what is left. An acquisition like this is bought on cash flow, so profitability is screened before anything else is spent. 12% remains.'],
+    ['Age','Minimum years trading · removes 15%','A minimum age since incorporation removes another 15%: what stays is a proven business, with a founder more likely to be thinking about succession. About 10% remains.'],
+    ['Ownership structure','One controlling shareholder · removes 50%','Concentrated ownership removes half of what is left. One shareholder must control the company, so one person can decide to sell. About 5% remains.'],
+    ['Ownership location','UK-resident owners, no parent · removes 30%','Requiring individual owners resident in the UK, with no corporate parent, removes another 30%. A subsidiary of a group is not a founder succession.']
+  ];
+  const gy=[150,222,294,366,438], gEls=[], gLbl=[];
+  gates.forEach((g,i)=>{
+    const w=W(gy[i]);
+    gEls.push(S('line',{x1:cx-w/2+4,y1:gy[i],x2:cx+w/2-4,y2:gy[i],class:'gate'}));
+    const lg=S('g',{class:'glabel'});
+    S('line',{x1:cx+w/2+10,y1:gy[i],x2:700,y2:gy[i],stroke:'#9a9a9a','stroke-dasharray':'2 4'},lg);
+    S('rect',{x:703,y:gy[i]-13,width:26,height:26,class:'gnum'},lg);T(716,gy[i]+4,String(i+1),'gnumt',lg);
+    T(740,gy[i]-3,g[0],'lbl',lg);T(740,gy[i]+15,g[1],'sub',lg);
+    T(cx-w/2-12,gy[i]+5,'−'+cut[i]+'%','cutp',lg);
+    gLbl.push(lg);
+  });
+  S('rect',{x:cx-122,y:538,width:260,height:76,fill:'rgba(233,29,42,0.92)'});S('rect',{x:cx-130,y:530,width:260,height:76,fill:'#fff',stroke:'#000','stroke-width':1});
+  T(cx,556,'Share of all companies left','lbl-c');
+  const cnt=T(cx,592,'100%','lbl-c',scene,{style:'font:900 28px var(--display);letter-spacing:-.02em;fill:#000;text-transform:none'});
+  const note=S('g',{class:'glabel'});
+  T(700,532,'Cleaned and deduplicated','lbl',note);
+  T(700,551,'One row per company number, zero duplicates or blanks','sub',note);
+  T(700,582,'Owners grouped by fuzzy name matching','lbl',note);
+  T(700,601,'≈16% of named targets share an owner: one approach each','sub',note);
+  // particles
+  const N=200, exits=[], drop=[160,16,4,10,3];
+  drop.forEach((n,k)=>{for(let i=0;i<n;i++)exits.push(k)});while(exits.length<N)exits.push(-1);
+  exits.sort(()=>Math.random()-.5);
+  const parts=exits.map(ex=>{const u=Math.random()*1.8-.9,y=88+Math.random()*48,x=cx+u*(W(y)/2-14);
+    const c=S('circle',{r:3.6,fill:['rgba(252,194,15,.85)','rgba(154,182,200,.9)','rgba(230,145,93,.85)'][Math.floor(Math.random()*3)],style:'mix-blend-mode:multiply'});c.style.transform=`translate(${x}px,${y}px)`;return{c,u,x,y,ex,alive:true}});
+  let cur=100;
+  function step(k){
+    setCls(gEls[k],'on');setCls(gLbl[k],'on');
+    const from=cur,to=rem[k];cur=to;tween(1100,q=>{const v=from+(to-from)*q;cnt.textContent=(v<10?v.toFixed(1):Math.round(v))+'%'},200);
+    parts.forEach(p=>{if(!p.alive)return;const d=Math.random()*250;
+      if(p.ex===k){p.alive=false;const side=p.u<0?-1:1,ox=cx+side*(W(gy[k])/2+40+Math.random()*60);
+        anim(p.c,[{transform:`translate(${cx+p.u*(W(gy[k])/2-14)}px,${gy[k]}px)`,opacity:1,offset:.45},{transform:`translate(${ox}px,${gy[k]+14}px)`,opacity:0}],{duration:1100,delay:d});
+      }else{const top=gy[k]+12,bot=(k<4?gy[k+1]:500)-12,ny=top+Math.random()*(bot-top);p.y=ny;p.x=cx+p.u*(W(ny)/2-14);
+        anim(p.c,[{transform:`translate(${p.x}px,${p.y}px)`}],{duration:900,delay:d});}
+    });
+  }
+  B.push({at:200,k:'Stage 1 · Source',t:'Start from 100% of the registered companies in a national company database. Filters run in the order that removes the most companies for the least judgement, and the counter shows what is left.'});
+  gates.forEach((g,k)=>B.push({at:1700+k*2100,k:`Filter ${k+1} · ${g[0]}`,t:g[2],run:()=>step(k)}));
+  B.push({at:12400,k:'Result · ≈3.6% of all companies',t:'About 3.6% of registered companies survive: the target universe of owner-managed SMEs, deduplicated to one row per company number and loaded into the master register. Later percentages are shares of this universe.',run(){
+    parts.forEach(p=>{if(!p.alive)return;anim(p.c,[{transform:`translate(${cx-90+Math.random()*180}px,${548+Math.random()*10}px)`,opacity:1,offset:.7},{opacity:0}],{duration:1300,delay:Math.random()*300})});
+  }});
+  B.push({at:14800,k:'One approach per owner',t:'About one in six named targets shares an owner with another target. Owners are grouped by fuzzy name matching, and each gets one letter about one primary company, never five letters in the same week.',run:()=>setCls(note,'on')});
+  return{beats:B,dur:17600,sum:['Stage 1 · Source','Starting from 100% of registered companies, five filters cut the field: revenue (−80%), EBITDA (−40%), age (−15%), ownership structure (−50%) and ownership location (−30%), leaving about 3.6% as the target universe. Owners with several companies get one approach.']};
+}
+
+/* ---------- scene 1b: ownership chain ---------- */
+function sOwn(){
+  const B=[];
+  function chip(x,y,w,name,role){const g=S('g',{class:'chip'});S('rect',{x,y,width:w,height:role?48:40},g);
+    T(x+12,y+(role?20:25),name,'',g,{style:'font-weight:700'});if(role)T(x+12,y+38,role,'nsub',g);return g}
+  T(40,70,'Ownership chain · company registers','tag');
+  const tgt=node({x:40,y:90,w:230,h:84,tag:'Target company',title:'Pennine Fasteners Ltd',sub:'Huddersfield · industrial fasteners'});
+  const h1=node({x:330,y:90,w:230,h:84,tag:'Holding company',title:'PF Holdings Ltd',sub:'sole shareholder of the target'});
+  const h2=node({x:620,y:90,w:250,h:84,tag:'Holding company',title:'Ashworth Investments Ltd',sub:'majority owner of PF Holdings'});
+  const w={a:'M270,132 L330,132',b:'M560,132 L620,132',c:'M870,132 C895,132 895,118 920,118',d:'M870,132 C895,132 895,168 920,168',e:'M445,174 L445,205',f:'M155,174 L155,300',g:'M1040,190 L1040,300',h:'M620,400 L660,400'};
+  const wires={};for(const k in w)wires[k]=S('path',{d:w[k],class:'wire'});
+  const pc1=T(300,124,'100%','lbl-c'), pc2=T(590,124,'76%','lbl-c'), pc3=T(462,196,'24%','lbl-c',scene,{style:'text-anchor:start'});
+  [pc1,pc2,pc3].forEach(t=>t.style.opacity=.3);
+  T(920,86,'People with significant control','tag');
+  const pm=chip(920,98,240,'Margaret Ashworth'), pd=chip(920,148,240,'David Ashworth');
+  const sp=chip(345,205,200,'Simon Price');
+  S('rect',{x:40,y:300,width:580,height:200,fill:'rgba(255,255,255,.72)',stroke:'#000'});
+  T(60,324,'Board of Pennine Fasteners · officer records','tag');
+  const bd=[chip(60,340,265,'David Ashworth','Managing director'),chip(340,340,265,'Tom Ashworth','Director'),chip(60,402,265,'Helen Moore','Finance director'),chip(340,402,265,'Simon Price','Director')];
+  const mt=T(330,482,'Surname match · Ashworth on the board and in the chain','lbl-c');mt.style.opacity=0;
+  FO(660,300,500,200,`<div class="card"><div class="card-h">Ownership resolved</div><dl class="kv own">
+    <dt id="o1a">Ultimate owner</dt><dd id="o1b">Ashworth family, through two holding companies</dd>
+    <dt id="o2a">Family stake</dt><dd id="o2b">≈76% of the operating company</dd>
+    <dt id="o3a">On the board</dt><dd id="o3b">2 of 4 directors are Ashworths</dd>
+    <dt id="o4a">Contact</dt><dd id="o4b">David Ashworth, managing director</dd>
+    <dt id="o5a">Letter</dt><dd id="o5b">Owner variant</dd></dl></div>`);
+  FO(40,525,1120,110,`<div class="rules"><div><b>Shareholder is a company</b>Follow the chain to that company’s own shareholders.</div><div><b>Shareholder is a person</b>Stop. The chain has reached a real owner.</div><div><b>Same surname on the board and in the chain</b>Family control confirmed. Write to the owner who sits on the board.</div><div><b>No owner on the board</b>Executive letter, asking to be introduced to the owners.</div></div>`);
+  let act=[];function on(...n){act.forEach(x=>setCls(x,'on',false));act=n;n.forEach(x=>setCls(x,'on'))}
+  function show(t){anim(t,[{opacity:1}],{duration:400})}
+  function row(i){['a','b'].forEach(z=>setCls($('o'+i+z),'on'))}
+  B.push({at:200,k:'Stage 2 · Owners',t:'The filters say a company is privately controlled. They do not say who to write to. This stage follows the ownership chain through the company registers until it reaches real people, then finds the one to contact.',run:()=>on(tgt)});
+  B.push({at:2200,k:'Follow the chain',t:'The register lists the target’s only shareholder as another company, PF Holdings Ltd. A company cannot read a letter, so the chain continues to that company’s own shareholders.',run(){setCls(wires.a,'live');show(pc1);later(500,()=>on(tgt,h1))}});
+  B.push({at:4700,k:'Through a second holding company',t:'PF Holdings is 76% owned by Ashworth Investments Ltd and 24% by one individual. The controlling stake is followed again.',run(){setCls(wires.b,'live');setCls(wires.e,'live');show(pc2);show(pc3);later(500,()=>{on(h1,h2);setCls(sp,'ok')})}});
+  B.push({at:7200,k:'Real people reached',t:'Ashworth Investments is controlled by Margaret and David Ashworth. Both are people, so the chain stops here.',run(){setCls(wires.c,'live');setCls(wires.d,'live');later(400,()=>{on(h2);setCls(pm,'ok');setCls(pd,'ok')})}});
+  B.push({at:9600,k:'Pull the board',t:'Next, the board of the operating company comes from its officer records: who actually runs the business day to day.',run(){setCls(wires.f,'live');on(tgt);bd.forEach((c,i)=>later(i*180,()=>setCls(c,'ok')))}});
+  B.push({at:12000,k:'Match surnames',t:'Surnames are matched across the board and the ownership chain. Ashworths appear on both sides, so the 76% stake is confirmed as family-controlled, even where the register does not split it person by person.',run(){
+    [pm,pd,bd[0],bd[1]].forEach(c=>{setCls(c,'ok',false);setCls(c,'fam')});show(mt);on();later(600,()=>{row(1);row(2);row(3)})}});
+  B.push({at:15000,k:'Choose the contact',t:'The contact is the person who is both on the board and in the ownership chain: David Ashworth, managing director. He gets the owner letter. A company with no owner on its board gets the executive letter instead, asking to be introduced.',run(){
+    setCls(wires.g,'live');setCls(wires.h,'live');setCls(bd[0],'pick');setCls(pd,'pick');later(500,()=>{row(4);row(5)})}});
+  return{beats:B,dur:18800,sum:['Stage 2 · Owners','The ownership chain is followed through the company registers, holding company by holding company, until it reaches real people. Surnames matched across the board and the chain confirm family control, and the owner who sits on the board becomes the contact.']};
+}
+
+/* ---------- scene 2: research agent ---------- */
+function s2(){
+  const B=[];
+  T(40,52,'One company, end to end','tag');
+  FO(40,66,310,260,`<div class="card"><div class="card-h">Register row <span class="pillx">example</span></div>
+   <dl class="kv"><dt>Name</dt><dd>Hartwell Engineering Ltd</dd><dt>Company no.</dt><dd class="m">00000000</dd><dt>Industry</dt><dd>Industrial maintenance</dd><dt>Region</dt><dd>Bristol</dd><dt>Founded</dt><dd>1974</dd><dt>Owner</dt><dd>Sole director, majority holder</dd></dl></div>`);
+  S('path',{d:'M350,196 L376,196',class:'wire',id:'w21'});
+  const br=FO(380,66,410,330,`<div class="browser"><div class="bar"><span class="dots">●●●</span><span class="url" id="url"></span></div>
+   <div class="tb"><span id="tb1">About us</span><span id="tb2">Legal</span></div>
+   <div class="pg"><p id="p1">Founded in Bristol in 1974.</p><p id="p2">Industrial machinery maintenance across the South West and South Wales.</p><p id="p3">We have been through hard times and learned to reinvent ourselves.</p><p class="legal" id="p4">Hartwell Engineering Ltd · Registered in England and Wales · Company no. 00000000</p></div></div>`);
+  FO(380,410,410,58,`<div class="badge" id="idb"><span class="ic">?</span><span>Identity check: company number on the site must match the register</span></div>`);
+  S('path',{d:'M790,196 L818,196',class:'wire',id:'w22'});
+  FO(820,66,340,250,`<div class="card"><div class="card-h">Generator · LLM</div><div class="gen" id="gen"></div><div class="facts" id="facts"></div></div>`);
+  FO(820,328,340,140,`<div class="card"><div class="card-h">Checker · second model</div><div class="verdict" id="ver">Verdict only. It can block a primer, never rewrite it.</div></div>`);
+  let cells='';for(let i=0;i<140;i++)cells+='<i></i>';
+  FO(40,490,1120,150,`<div class="card"><div class="fan"><div><div class="n" id="fanN">—</div><div class="d">of targets matched to a verified website and researched: description, red flags and a checked primer</div></div>
+   <div><div class="grid" id="grid">${cells}</div><div class="legend"><span style="--c:var(--gel-sage)">personalised primer</span><span style="--c:var(--gel-steel)">thin site → neutral paragraph</span><span style="--c:var(--gel-red)">red flag → back to tiering</span></div></div></div></div>`);
+  const primer='Since its founding in Bristol in 1974, Hartwell Engineering has built more than 50 years of continuous growth serving industry across the South West and South Wales. We would welcome your view on the future of the business.';
+  const url='www.hartwellengineering.co.uk';
+  B.push({at:200,k:'Stage 3 · Research',t:'For each company in the register, an AI research agent builds what is needed to write to its owner. Here is one company, end to end.'});
+  B.push({at:1200,k:'Find and crawl the website',t:'The agent finds the company’s website and crawls the pages that matter: the homepage, the about page and the legal notice. Pages are cached so nothing is fetched twice.',run(){
+    setCls($('w21'),'live');tween(1100,p=>{$('url').textContent=url.slice(0,Math.round(url.length*p))});
+    later(1300,()=>{setCls($('tb1'),'on');['p1','p2','p3'].forEach((id,i)=>later(i*350,()=>setCls($(id),'seen')))});}});
+  B.push({at:4200,k:'Confirm it is the right company',t:'UK company websites must show the registered company number. Only sites where it matches the register may feed the writer, because describing the wrong company in a signed letter is the worst possible error.',run(){
+    setCls($('tb1'),'on',false);setCls($('tb2'),'on');setCls($('p4'),'seen');setCls($('p4'),'hit');
+    later(700,()=>{const b=$('idb');setCls(b,'on');b.querySelector('.ic').textContent='✓';b.lastChild.textContent='Company number matches the register: identity confirmed'});}});
+  B.push({at:6800,k:'Generator drafts the warm primer',t:'The generator writes two or three formal sentences, with at least one concrete fact from the site, no flattery and no financial figures. For every claim it must return the exact quote it came from.',run(){
+    setCls($('w22'),'live');tween(3000,p=>{$('gen').textContent=primer.slice(0,Math.round(primer.length*p))});}});
+  B.push({at:10600,k:'Checker blocks an unsupported claim',t:'A second model checks every claim against its quote. “Continuous growth” overstates the source, which mentions hard times, so the primer is blocked.',run(){
+    $('gen').innerHTML=primer.replace('continuous growth','<span class="flagged">continuous growth</span>');
+    setCls($('p3'),'bad');$('ver').innerHTML='<b class="bad">BLOCK</b> · “continuous growth” is stronger than the source, which says “hard times”.';}});
+  B.push({at:13400,k:'Fixed, passed, routed',t:'The corrected primer passes, with every claim traced to a quote. Silver primers that pass are approved automatically; Gold primers, printed in signed letters, still get a reviewer’s approval.',run(){
+    $('gen').innerHTML=primer.replace('continuous growth','<s>continuous growth</s> <ins>history</ins>');setCls($('p3'),'bad',false);
+    $('ver').innerHTML='<b class="good">PASS</b> · every claim maps to a quote on the site. Gold: a reviewer approves. Silver: auto-approved.';
+    $('facts').innerHTML='<span>“Founded in Bristol in 1974”</span><span>“the South West and South Wales”</span>';}});
+  B.push({at:16200,k:'Repeated across the register',t:'The same pipeline runs across the universe: about 90% of targets are matched to a verified website, and about three in four have enough site text for a personalised primer. The rest get a neutral paragraph, and red flags such as “part of a group” send the company back to tiering.',run(){
+    const cs=[...$('grid').children];const kinds=cs.map(()=>{const r=Math.random();return r<.03?'r':r<.27?'n':'g'});
+    tween(2200,p=>{const n=Math.round(cs.length*p);for(let i=0;i<n;i++)cs[i].className=kinds[i];$('fanN').textContent='≈ '+Math.round(90*p)+'%'});}});
+  return{beats:B,dur:20200,sum:['Stage 3 · Research','An AI agent finds and crawls each company’s website, confirms identity by company number, and drafts a two-to-three sentence warm primer. A second model checks every claim against a quote from the site. About 90% of targets researched.']};
+}
+
+/* ---------- scene 3: news eligibility screen ---------- */
+function s3(){
+  const B=[];
+  const cos=['Metalwork · Leeds','HVAC distribution · Manchester','Logistics · Bristol','Packaging · Birmingham','Maintenance · Sheffield','Food production · Norwich'];
+  T(40,70,'Industry run · one industry at a time','tag');
+  const cl=S('g',{});const chips=cos.map((c,i)=>{const g=S('g',{class:'chip'},cl);S('rect',{x:0,y:0,width:240,height:40},g);T(14,25,c,'',g);g.style.transform=`translate(40px,${88+i*52}px)`;return g});
+  S('rect',{x:320,y:80,width:380,height:300,fill:'rgba(255,255,255,.72)',stroke:'#000'});
+  T(340,108,'Eligibility screen','ntitle');T(340,126,'A fixed set of combined web searches per company','nsub');
+  const qs=['Sales, M&A, ownership change','Insolvency + private equity','Local press · by region','Further combined queries'].map((q,i)=>{const g=S('g',{class:'q'});S('rect',{x:340,y:142+i*38,width:340,height:30},g);T(354,162+i*38,q,'',g);return g});
+  S('rect',{x:340,y:300,width:340,height:56,fill:'none',stroke:'#9a9a9a','stroke-dasharray':'4 4'});
+  const verd=T(510,400,'LLM verdict appears here','lbl-c');
+  T(740,70,'Eligible','tag');
+  S('rect',{x:740,y:420,width:420,height:92,fill:'none',stroke:'#e91d2a','stroke-width':1.5});
+  T(756,442,'Human review · flagged with sources','tag',scene,{style:'fill:#e91d2a'});
+  const ev=S('g',{opacity:0});T(1004,472,'Sold to a PE fund (2025)','sub',ev,{style:'fill:#000'});T(1004,490,'2 sources attached','sub',ev);
+  const tst=FO(40,540,1120,100,`<div class="toasts">${['Screening launched','Flag raised · sent for review','Eligibility complete','Results written back'].map((t,i)=>`<div class="toast" id="ts${i}"><small>Teams</small>${t}</div>`).join('')}</div>`);
+  scene.appendChild(cl);
+  B.push({at:200,k:'Stage 4 · Screen',t:'Databases lag reality. Before anyone is contacted, every company is checked against the news for signs it is no longer an owner-managed target.',run:()=>setCls($('ts0'),'on')});
+  let elig=0;
+  cos.forEach((c,i)=>{
+    const flag=i===3, at=1400+i*1900;
+    B.push({at,k:flag?'A prior deal is caught':`Screening ${i+1} of 6`,t:flag?'The searches surface a sale to a private-equity fund last year. The company is flagged with its sources and sent to a person, who can override a false match, such as a namesake company.':(i===0?'Make runs a fixed set of combined searches for each company. The model never chooses what to search for; it judges the results, so every verdict has a reviewable record of what was looked at.':'Clean result: no sale, no insolvency, no investor entry. The company moves on to scoring.'),run(){
+      anim(chips[i],[{transform:'translate(390px,308px)'}],{duration:600});
+      verd.textContent='searching…';verd.style.fill='#555';
+      qs.forEach((q,j)=>later(650+j*170,()=>{setCls(q,'on');later(260,()=>setCls(q,'on',false))}));
+      later(1350,()=>{if(flag){setCls(chips[i],'bad');setCls($('ts1'),'on');verd.textContent='Flag · prior transaction found';verd.style.fill='#e91d2a'}else{setCls(chips[i],'ok');verd.textContent='✓ Eligible · nothing found';verd.style.fill='#000'}});
+      later(1650,()=>{if(flag){anim(chips[i],[{transform:'translate(752px,456px)'}],{duration:600});anim(ev,[{opacity:1}],{duration:400,delay:500})}
+        else{anim(chips[i],[{transform:`translate(740px,${88+elig*52}px)`}],{duration:600});elig++}});
+    }});
+  });
+  B.push({at:12900,k:'Eligibility complete',t:'Clean companies are written back to the pipeline table and become eligible for the next dispatch batch. The team gets a Teams update at launch, on every flag and at completion, so nobody has to open the automation tool to know where a run is.',run(){setCls($('ts2'),'on');later(1400,()=>setCls($('ts3'),'on'))}});
+  return{beats:B,dur:16200,sum:['Stage 4 · Screen','Each company gets a fixed set of combined web searches: sales and M&A, insolvency and private equity, local press. A model judges the results; flagged companies go to human review with their sources, and clean ones become eligible for dispatch.']};
+}
+
+/* ---------- scene 4: dispatch cycle ---------- */
+function s4(){
+  const B=[];
+  const W={
+    w1:'M262,140 L300,140', w2:'M490,120 C515,120 515,90 540,90', w3:'M730,90 L770,90', w4:'M950,90 L990,90',
+    w5:'M1080,130 L1080,170', w6:'M1080,240 C1080,282 640,262 635,300', w7:'M395,185 C395,292 470,340 540,340',
+    w8:'M730,340 L770,340', w9:'M950,340 L990,340', w10:'M1080,380 L1080,425',
+    w11:'M1080,495 L1080,508 L395,508 L395,495', w12:'M300,460 C150,460 146,300 146,234'};
+  const wires={};for(const k in W)wires[k]=S('path',{d:W[k],class:'wire'+(k==='w7'?' silver':'')});
+  const N={
+    s1:node({x:300,y:95,w:190,h:90,tag:'Step 1',title:'Batch dispatch',sub:'claims batch · every 30 min'}),
+    s4:node({x:540,y:50,w:190,h:80,tag:'Step 2',title:'Letters + envelopes',sub:'Word template → PDF',cls:'gold'}),
+    hu:node({x:770,y:50,w:180,h:80,tag:'PEOPLE',title:'Sign · post · log',sub:'deal lead + team',cls:'human gold'}),
+    s3:node({x:990,y:50,w:180,h:80,tag:'Step 3',title:'Posting log',sub:'queued → posted',cls:'gold'}),
+    s6:node({x:990,y:170,w:180,h:70,tag:'Step 4',title:'Enrolment check',sub:'deal exists? else alert',cls:'gold'}),
+    s10:node({x:540,y:175,w:190,h:62,tag:'Always on',title:'Alert hub',sub:'every error path → Teams',cls:'alert'}),
+    s2:node({x:540,y:300,w:190,h:80,tag:'Step 5',title:'Campaign load',sub:'email contains @ ?'}),
+    le:node({x:770,y:300,w:180,h:80,tag:'LEMLIST',title:'Email sequence',sub:'warmed mailboxes'}),
+    ow:node({x:990,y:300,w:180,h:80,tag:'OWNER',title:'Founder',sub:'letterbox + inbox',cls:'human'}),
+    s7:node({x:990,y:425,w:180,h:70,tag:'Step 6',title:'Reply handler',sub:'moves the deal forward'}),
+    s12:node({x:770,y:425,w:180,h:70,tag:'Step 7',title:'Manual-move pause',sub:'card moved → emails stop'}),
+    s11:node({x:300,y:425,w:190,h:70,tag:'Step 8',title:'Write-back',sub:'nightly · master register'})
+  };
+  FO(30,60,232,174,`<div class="sheet"><div class="fn">Excel · OUTREACH-MASTER</div><table>
+    <tr><td>industry</td><td class="v">Industrial maint.</td></tr><tr><td>tier</td><td class="v" id="xt">GOLD</td></tr>
+    <tr><td>dispatch</td><td class="v" id="xd">NO</td></tr><tr><td>DISPATCHED</td><td class="v" id="xl">ledger</td></tr><tr><td>WRITEBACK</td><td class="v" id="xw">outcomes</td></tr></table></div>`);
+  FO(30,520,744,128,`<div class="board"><div class="hd">PIPEDRIVE · TARGET PIPELINE</div><div class="cols">
+    <div class="col" id="c12"><h4>12 Queued</h4></div><div class="col" id="c13"><h4>13 Written</h4></div><div class="col" id="c14"><h4>14 Email live</h4></div><div class="col" id="c15"><h4>15 Replied</h4></div><div class="col"><h4>16–18 Info · Intro · Out</h4></div></div></div>`);
+  FO(790,520,380,128,`<div class="teams" id="tm"><div class="hd">TEAMS · NOTIFICATIONS</div></div>`);
+  const tg=token('#fcc20f'), ts=token('#a5b8c0'), tr=token('#8c9ae0');
+  let active=[];
+  function on(...ks){active.forEach(n=>setCls(n,'on',false));active=ks.map(k=>N[k]);active.forEach(n=>setCls(n,'on'))}
+  function live(...ks){for(const k in wires)setCls(wires[k],'live',false);ks.forEach(k=>setCls(wires[k],'live'))}
+  function msg(t,alert){const m=document.createElement('div');m.className='msg'+(alert?' alert':'');m.textContent=t;const tm=$('tm');tm.insertBefore(m,tm.children[1]||null);while(tm.children.length>4)tm.lastChild.remove()}
+  function flash(id,v){const c=$(id);if(v!=null)c.innerHTML=v;setCls(c,'flash');later(900,()=>setCls(c,'flash',false))}
+  let gd, sd;
+  function deal(col,silver){const d=document.createElement('div');d.className='deal'+(silver?' s':'');d.innerHTML=silver?'Calder Logistics Ltd':'Hartwell Engineering';$(col).appendChild(d);return d}
+  function move(d,col){$(col).appendChild(d);d.style.animation='none';void d.offsetWidth;d.style.animation=''}
+  B.push({at:200,k:'Stage 5 · Dispatch',t:'Eight automated steps run the outreach, and each one only reads one status and writes the next. Follow one Gold company through the whole cycle.'});
+  B.push({at:1400,k:'Human input 1 of 2',t:'The deal lead picks an industry and a tier from two dropdowns and sets dispatch to YES. Nobody opens the automation tool.',run(){flash('xd','<span class="yes">YES</span>')}});
+  B.push({at:2900,k:'Step 1 · Batch dispatch',t:'Within 30 minutes the dispatcher claims the batch. It creates the Pipedrive organisation, person and deal, queues the company, appends its company number to a ledger so it can never be dispatched twice, and resets the flag to NO.',run(){
+    live('w1');travel(tg,W.w1,700);later(700,()=>{on('s1');gd=deal('c13');flash('xl','+1 company no.');later(400,()=>flash('xd','NO'));msg('Batch dispatched · Industrial maintenance · Gold')});}});
+  B.push({at:6000,k:'Step 2 · Letter and envelope merge',t:'A webhook triggers the letter merge. The batch is merged into one Word letter per variant (owner or executive) and converted to PDF, with a C5 envelope PDF built from the same rows, so page N always pairs with letter N.',run(){
+    live('w2');travel(tg,W.w2,800);later(800,()=>{on('s4');msg('Letters ready · owner + executive PDFs · envelopes')});}});
+  B.push({at:9400,k:'Human input 2 of 2',t:'The deal lead reads and signs. The team posts the letters and logs a single row in Excel: industry, date and initials.',run(){live('w3');travel(tg,W.w3,600);later(600,()=>on('hu'))}});
+  B.push({at:12000,k:'Steps 3 and 4 · Posting log and enrolment check',t:'The posting log picks up the row, marks the batch as posted and triggers the enrolment check by webhook, which confirms the CRM deal exists before enrolment; if it does not, the row is parked with an alert instead of being lost silently.',run(){
+    live('w4','w5');travel(tg,W.w4,600);later(600,()=>{on('s3');msg('Companies flipped to posted')});later(1300,()=>{travel(tg,W.w5,500);later(500,()=>on('s6'))});}});
+  B.push({at:15200,k:'Step 5 · Campaign load',t:'Rows with a real email address (it must contain @) go to the lemlist campaign for their tier and addressee, and the deal moves to Email sequence live. Rows without one close as letter-only, instead of retrying forever.',run(){
+    live('w6');travel(tg,W.w6,1000);later(1000,()=>{on('s2');move(gd,'c14');msg('Ready to launch on lemlist')});}});
+  B.push({at:18000,k:'The email sequence',t:'A few days after posting, the first email lands: “as I mentioned in my letter…”. It goes to the same person who received the letter.',run(){
+    live('w8','w9');travel(tg,W.w8,600);later(600,()=>on('le'));later(1400,()=>{travel(tg,W.w9,600);later(600,()=>on('ow'))});}});
+  B.push({at:21200,k:'Step 6 · Reply handler',t:'The owner replies. lemlist stops the sequence and the reply handler moves the deal to Replied, never backwards. Pipedrive then creates a “Triage reply” task, exactly as it would if a person had moved the card.',run(){
+    tg.style.opacity=0;live('w10');travel(tr,W.w10,900);later(900,()=>{on('s7');move(gd,'c15');gd.innerHTML='Hartwell Engineering<em>Task: triage reply</em>'});}});
+  B.push({at:24400,k:'Step 7 · Manual-move pause',t:'Replies by phone or post never reach lemlist. Someone on the team drags the card, and every six hours this step asks Pipedrive which deals moved and pauses those leads’ emails.',run(){live();on('s12')}});
+  B.push({at:27200,k:'Step 8 · Write-back',t:'Nightly, finished companies are written back to the master register. Only after that write succeeds is the row removed from the working queue, so no outcome is ever lost.',run(){
+    live('w11','w12');travel(tr,W.w11,800);later(800,()=>{on('s11');travel(tr,W.w12,800);later(800,()=>{flash('xw','+1 outcome');msg('Write-back complete');tr.style.opacity=0})});}});
+  B.push({at:30600,k:'Silver batches',t:'Silver companies skip the letter. Their deal opens at Queued, and they go straight from dispatch to enrolment and the email sequence.',run(){
+    live('w1','w7','w8');$('xt').textContent='SILVER';flash('xd','<span class="yes">YES</span>');
+    travel(ts,W.w1,600,300);later(900,()=>{on('s1');sd=deal('c12',true);flash('xd','NO');msg('Batch dispatched · Industrial maintenance · Silver')});
+    later(1400,()=>{travel(ts,W.w7,1000);later(1000,()=>{on('s2');move(sd,'c14')})});later(2700,()=>{travel(ts,W.w8,600);later(600,()=>on('le'))});}});
+  B.push({at:34600,k:'Always on · Alert hub',t:'Every module that can fail has an error handler. The alert hub relays each one to Teams with the step, the record and how to fix it, so a failure is never silent.',run(){live();ts.style.opacity=0;on('s10');msg('⚠ Example alert · Step 5 · lemlist push failed · row kept for repair',true)}});
+  return{beats:B,dur:38400,sum:['Stage 5 · Dispatch','Two human inputs, eight automated steps and an alert hub: dispatch creates CRM deals and a re-dispatch ledger, Gold letters and envelopes are merged to PDF, posting triggers enrolment, lemlist runs the sequence, replies move deals, manual moves pause emails, and outcomes are written back nightly.']};
+}
+
+/* ---------- scene 5: results ---------- */
+function s5(){
+  const B=[];
+  const tiles=[['≈90%','of targets matched to their own verified website by the AI agent',90,'≈','%'],['≈76%','of targets with enough site text for a fact-checked personalised primer',76,'≈','%'],['≈16%','of named targets share an owner, so each owner gets one approach',16,'≈','%'],
+    ['8','automated steps in production, all watched by one alert hub',8,'',''],['2','human inputs per batch: set dispatch, log posting',2,'',''],['≈13','automation operations per company, across its whole lifecycle',13,'≈','']];
+  FO(40,36,1120,600,`<div class="res"><div class="tiles">${tiles.map((t,i)=>`<div class="tile"><div class="v" id="tv${i}">${t[0]}</div><div class="t">${t[1]}</div></div>`).join('')}</div>
+   <div><p class="rh">What I did</p><ul class="did"><li>Scoped the system with the deal lead and designed the data model and status flow</li><li>Wrote the prep pipeline: cleaning, ownership-chain resolution, surname matching, contact ranking</li><li>Built the primer generator and the adversarial checker, plus the news eligibility screen</li><li>Built, debugged and hardened every automated step, then wrote the operator guide</li></ul></div>
+   <div><p class="rh">Stack</p><div class="stack"><span>Company database</span><span>Python</span><span>LLMs via OpenRouter</span><span>Make.com</span><span>Excel · SharePoint</span><span>Word → PDF</span><span>lemlist</span><span>Hunter.io</span><span>Pipedrive</span><span>Microsoft Teams</span></div></div></div>`);
+  B.push({at:200,k:'Results',t:'A database licence became a weekly origination pipeline that a small team runs from Excel and Teams.',run(){
+    tiles.forEach((t,i)=>tween(1400,p=>{$('tv'+i).textContent=t[3]+Math.round(t[2]*p)+t[4]},i*150))}});
+  return{beats:B,dur:6000,sum:['Results','About 90% of targets researched, 76% with a personalised primer, one approach per owner, 8 automated steps in production, 2 human inputs per batch, and about 13 operations per company.']};
+}
+
+/* ---------- player ---------- */
+const CH=[['Source',s1],['Owners',sOwn],['Research',s2],['Screen',s3],['Dispatch',s4],['Results',s5]];
+const tabs=$('tabs');
+CH.forEach((c,i)=>{const b=document.createElement('button');b.innerHTML=`<b>${i+1}</b>${c[0]}<span class="bar"></span>`;b.onclick=()=>load(i,true);tabs.appendChild(b)});
+function load(i,user){
+  document.getAnimations().forEach(a=>a.cancel());
+  scene.innerHTML='';P.ch=i;P.t=0;P.bi=0;P.tweens=[];P.sched=[];
+  const r=CH[i][1]();P.beats=r.beats;P.dur=r.dur;P.sum=r.sum;
+  [...tabs.children].forEach((b,j)=>{b.toggleAttribute('aria-current',false);if(j===i)b.setAttribute('aria-current','step');b.querySelector('.bar').style.width=j<i?'100%':'0'});
+  if(RM){INSTANT=true;P.beats.forEach(b=>b.run&&b.run());INSTANT=false;P.bi=P.beats.length;cap(r.sum[0],r.sum[1]);tabs.children[i].querySelector('.bar').style.width='100%';return}
+  if(user&&!P.playing)setPlay(true);
+}
+function setPlay(v){P.playing=v;$('play').textContent=v?'Pause':'Play';$('play').setAttribute('aria-label',v?'Pause':'Play');
+  document.getAnimations().forEach(a=>{try{v?(a.playState==='paused'&&a.play()):a.pause()}catch(e){}})}
+function frame(ts){
+  if(P.playing&&P.last!=null)P.t+=Math.min(ts-P.last,100);
+  P.last=ts;
+  if(!RM){
+    while(P.bi<P.beats.length&&P.beats[P.bi].at<=P.t){const b=P.beats[P.bi++];if(b.k)cap(b.k,b.t);b.run&&b.run()}
+    P.sched.sort((a,b)=>a.at-b.at);while(P.sched.length&&P.sched[0].at<=P.t){P.sched.shift().fn()}
+    P.tweens=P.tweens.filter(w=>{if(P.t<w.s)return true;const p=Math.min(1,(P.t-w.s)/w.d);w.fn(ease(p));return p<1});
+    tabs.children[P.ch].querySelector('.bar').style.width=Math.min(100,P.t/P.dur*100)+'%';
+    if(P.playing&&P.t>P.dur+1500){if(P.ch<CH.length-1)load(P.ch+1);else{setPlay(false);$('play').textContent='Replay';}}
+  }
+  requestAnimationFrame(frame);
+}
+$('play').onclick=()=>{if(!P.playing&&P.ch===CH.length-1&&P.t>P.dur){load(0);setPlay(true);return}if(RM){return}setPlay(!P.playing)};
+$('replay').onclick=()=>load(P.ch,true);
+$('prev').onclick=()=>load(Math.max(0,P.ch-1),true);
+$('next').onclick=()=>load(Math.min(CH.length-1,P.ch+1),true);
+if(RM){$('play').disabled=true;$('play').textContent='Motion off'}
+load(0);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
